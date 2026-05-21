@@ -10,9 +10,10 @@ Unit tests cover local logic:
 
 - `.env` and environment parsing.
 - Missing `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `RESEND_RECEIVING_ADDRESS` errors.
-- Send payload construction: default sender, explicit sender, recipients, cc/bcc/reply-to, subject, HTML, text, body files, and attachments.
+- Send payload construction: default sender, explicit sender, recipients, cc/bcc/reply-to, subject, HTML, text, body files, custom headers, and attachments.
 - Markdown, HTML, and text body-file handling.
 - Attachment content-type inference and byte encoding.
+- Custom header parsing for single headers, multiple headers, invalid missing-colon input, empty names, and empty values.
 - Resend API error mapping.
 - Received email response normalization.
 - Markdown export frontmatter and body-source selection.
@@ -23,6 +24,7 @@ Mocked integration tests verify CLI-to-library seams with fake clients:
 
 - `doctor config --format json` prints masked configuration status.
 - `send --dry-run --format json` builds payloads without network calls.
+- `send --header "X-Custom: value" --dry-run --format json` includes parsed headers in the dry-run payload.
 - `send` with a fake client returns a stable email id JSON object.
 - `received list` handles empty and populated results.
 - `received get` returns normalized body/header/attachment fields.
@@ -81,7 +83,7 @@ After implementation changes, run:
 ```bash
 .venv/bin/python -m pytest -v
 .venv/bin/python -m resend_email_skill.cli doctor config --format json
-.venv/bin/python -m resend_email_skill.cli send --to test@example.com --subject "Dry run" --body-file docs/test.md --body-format markdown --dry-run --format json
+.venv/bin/python -m resend_email_skill.cli send --to test@example.com --subject "Dry run" --body-file docs/test.md --body-format markdown --header "X-Custom: value" --dry-run --format json
 ```
 
 If live credentials are not available, stop at offline tests and dry-run smoke checks.

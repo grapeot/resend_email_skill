@@ -82,6 +82,7 @@ resend-email send \
   --subject "Subject" \
   --body-file body.md \
   --body-format markdown \
+  --header "X-Custom: value" \
   --dry-run \
   --format json
 
@@ -105,6 +106,8 @@ Sending requires `from`, at least one `to` recipient, `subject`, and at least on
 `--body-file` supports Markdown, HTML, and plain text. `--body-format` can override suffix inference. Markdown is converted to email-safe HTML for the `html` field. Text files populate `text`. Explicit `--html` and `--text` are also supported.
 
 Attachments are read from local files and encoded as Resend-compatible attachment dictionaries with filename, content, and content type. Missing attachment files fail before any network call.
+
+Custom send headers use repeatable `--header "Name: Value"` flags. The parser splits on the first colon, trims the name and value, rejects missing names or empty values, and includes a Resend-compatible `headers` object only when at least one header is provided.
 
 Dry-run mode builds and validates the payload but does not call Resend. Real sends require `--confirm-send` so an omitted dry-run flag does not silently send email.
 
