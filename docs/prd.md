@@ -20,11 +20,11 @@ The repository is intended to be public. Public docs, examples, fixtures, and `.
 
 Version 1 covers five surfaces.
 
-First, email sending. The CLI supports `RESEND_FROM_EMAIL` as the default sender, `--from` as an override, and recipient/body controls including `--to`, `--cc`, `--bcc`, `--reply-to`, `--subject`, `--html`, `--text`, `--body-file`, `--body-format`, `--attach`, `--idempotency-key`, and `--dry-run`.
+First, email sending. The CLI supports `RESEND_FROM_EMAIL` as the default sender, `--from` as an override, and recipient/body controls including `--to`, `--cc`, `--bcc`, `--reply-to`, `--subject`, `--html`, `--text`, `--body-file`, `--body-format`, `--attach`, `--idempotency-key`, `--dry-run`, and `--confirm-send`. Real sends require `--confirm-send`.
 
 Second, received email listing. The CLI wraps Resend's received email list API with `--limit`, `--after`, `--before`, and JSON output. The normalized result includes message id, sender, recipients, subject, creation time, and attachment metadata.
 
-Third, received email retrieval. The CLI retrieves a single received email by id and returns HTML, text, headers, raw MIME metadata, and attachment metadata. Markdown export writes local files with YAML frontmatter.
+Third, received email retrieval. The CLI retrieves a single received email by id and returns HTML, text, headers, and attachment metadata. It intentionally omits raw MIME from normalized CLI output. Markdown export writes local files with YAML frontmatter, and batch export can pull recent received emails to local Markdown files.
 
 Fourth, attachment handling. The CLI lists received email attachments and downloads attachment content through signed download URLs. Signed URLs are treated as short-lived transfer links, not durable references.
 

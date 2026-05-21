@@ -31,6 +31,8 @@ def normalize_attachment_list(response: JsonObject) -> JsonObject:
 def safe_filename(value: str | None, fallback: str) -> str:
     raw = value or fallback
     name = sub(r"[^A-Za-z0-9._-]+", "-", raw).strip("-")
+    if name in {".", ".."}:
+        return fallback
     return name or fallback
 
 

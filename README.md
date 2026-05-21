@@ -59,7 +59,7 @@ resend-email send --to user@example.com --subject "Hello" --body-file body.md --
 Send for real after review:
 
 ```bash
-resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --format json
+resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --confirm-send --format json
 ```
 
 List received email:
@@ -73,6 +73,7 @@ Retrieve and export:
 ```bash
 resend-email received get <email_id> --format json
 resend-email received export-md <email_id> --output-dir data/received/markdown --format json
+resend-email received export-all-md --limit 20 --output-dir data/received/markdown --format json
 ```
 
 Attachments:
@@ -111,7 +112,7 @@ Live tests are opt-in:
 RESEND_ENABLE_LIVE_TESTS=1 .venv/bin/python -m pytest -v -m live_integration
 ```
 
-Real sends require `RESEND_LIVE_ALLOW_SEND=1`. E2E send-to-self tests also require `RESEND_LIVE_ALLOW_E2E=1` and `RESEND_RECEIVING_ADDRESS`.
+Real sends from the CLI require `--confirm-send`. Live tests that send email require `RESEND_LIVE_ALLOW_SEND=1`. E2E send-to-self tests also require `RESEND_LIVE_ALLOW_E2E=1` and `RESEND_RECEIVING_ADDRESS`.
 
 ## Privacy
 

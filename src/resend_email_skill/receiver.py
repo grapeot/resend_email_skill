@@ -28,7 +28,6 @@ def normalize_email(email: JsonObject) -> JsonObject:
         "text": email.get("text"),
         "headers": email.get("headers") or {},
         "attachments": email.get("attachments") or [],
-        "raw": email.get("raw"),
     }
 
 

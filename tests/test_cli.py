@@ -15,10 +15,10 @@ class FakeClient:
         return {"id": "sent-1", "idempotency_key": idempotency_key, "payload_subject": payload["subject"]}
 
     def list_received(self, *, limit=20, after=None, before=None):
-        return {"object": "list", "data": [{"id": "email-1", "subject": "Hello"}], "has_more": False}
+        return {"object": "list", "data": [{"id": "email-1", "subject": "Hello"}, {"id": "email-2", "subject": "World"}], "has_more": False}
 
     def get_received(self, email_id):
-        return {"id": email_id, "from": "a@example.com", "to": ["b@example.com"], "subject": "Hello", "text": "Body", "attachments": []}
+        return {"id": email_id, "from": "a@example.com", "to": ["b@example.com"], "subject": f"Hello {email_id}", "text": "Body", "attachments": [], "raw": "private mime"}
 
     def list_received_attachments(self, email_id, *, limit=100, after=None, before=None):
         return {"object": "list", "data": [{"id": "att-1", "filename": "hello.txt"}], "has_more": False}
@@ -57,10 +57,19 @@ def test_cli_send_uses_client(monkeypatch, capsys) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
     monkeypatch.setenv("RESEND_FROM_EMAIL", "Example <no-reply@example.com>")
     monkeypatch.setattr(cli, "ResendClient", FakeClient)
-    assert cli.main(["send", "--to", "user@example.com", "--subject", "Hi", "--text", "Body", "--idempotency-key", "idem-1"]) == 0
+    assert cli.main(["send", "--to", "user@example.com", "--subject", "Hi", "--text", "Body", "--idempotency-key", "idem-1", "--confirm-send"]) == 0
     payload = parse_stdout(capsys.readouterr().out)
     assert payload["response"]["id"] == "sent-1"
     assert payload["response"]["idempotency_key"] == "idem-1"
+
+
+def test_cli_real_send_requires_confirmation(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setenv("RESEND_FROM_EMAIL", "Example <no-reply@example.com>")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["send", "--to", "user@example.com", "--subject", "Hi", "--text", "Body"]) == 1
+    payload = json.loads(capsys.readouterr().err)
+    assert payload["error_type"] == "send_not_confirmed"
 
 
 def test_cli_received_list(monkeypatch, capsys) -> None:
@@ -77,6 +86,17 @@ def test_cli_export_markdown(monkeypatch, capsys, tmp_path: Path) -> None:
     assert cli.main(["received", "export-md", "email-1", "--output-dir", str(tmp_path)]) == 0
     payload = parse_stdout(capsys.readouterr().out)
     assert Path(payload["path"]).exists()
+    assert "raw" not in payload["email"]
+
+
+def test_cli_export_all_markdown(monkeypatch, capsys, tmp_path: Path) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["received", "export-all-md", "--limit", "2", "--output-dir", str(tmp_path)]) == 0
+    payload = parse_stdout(capsys.readouterr().out)
+    assert payload["count"] == 2
+    assert len(payload["paths"]) == 2
+    assert all(Path(path).exists() for path in payload["paths"])
 
 
 def test_cli_attachment_download(monkeypatch, capsys, tmp_path: Path) -> None:

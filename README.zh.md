@@ -57,7 +57,7 @@ resend-email send --to user@example.com --subject "Hello" --body-file body.md --
 确认后真实发送：
 
 ```bash
-resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --format json
+resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --confirm-send --format json
 ```
 
 列出收到的邮件：
@@ -71,6 +71,7 @@ resend-email received list --limit 20 --format json
 ```bash
 resend-email received get <email_id> --format json
 resend-email received export-md <email_id> --output-dir data/received/markdown --format json
+resend-email received export-all-md --limit 20 --output-dir data/received/markdown --format json
 ```
 
 附件：

@@ -7,6 +7,7 @@ import pytest
 
 from resend_email_skill.config import load_settings
 from resend_email_skill.client import ResendClient
+from resend_email_skill.markdown import export_markdown
 from resend_email_skill.receiver import poll_for_subject
 from resend_email_skill.sender import build_send_payload
 
@@ -36,6 +37,20 @@ def test_live_list_received() -> None:
     client = ResendClient(load_settings())
     response = client.list_received(limit=1)
     assert "data" in response
+
+
+def test_live_export_recent_received_to_markdown(tmp_path) -> None:
+    require_live()
+    client = ResendClient(load_settings())
+    response = client.list_received(limit=5)
+    exported = []
+    for item in response.get("data", []):
+        email_id = item.get("id")
+        if not email_id:
+            continue
+        exported.append(export_markdown(client.get_received(str(email_id)), tmp_path))
+    assert len(exported) == len(response.get("data", []))
+    assert all(path.exists() for path in exported)
 
 
 def test_live_send_dry_payload_only() -> None:

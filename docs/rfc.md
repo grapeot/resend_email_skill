@@ -35,7 +35,7 @@ resend_email_skill/
 │       ├── attachments.py
 │       └── errors.py
 ├── scripts/
-│   └── resend-email
+│   └── run_cli.sh
 └── tests/
 ```
 
@@ -88,10 +88,13 @@ resend-email send \
 resend-email received list --limit 20 --format json
 resend-email received get <email_id> --format json
 resend-email received export-md <email_id> --output-dir data/received/markdown --format json
+resend-email received export-all-md --limit 20 --output-dir data/received/markdown --format json
 resend-email received attachments list <email_id> --format json
 resend-email received attachments download <email_id> <attachment_id> --output-dir data/received/attachments --format json
 resend-email received poll --subject-prefix "[resend-e2e]" --timeout 60 --format json
 ```
+
+Real sends require replacing `--dry-run` with `--confirm-send`.
 
 When `--format json` is set, stdout contains exactly one JSON object. Progress and polling messages go to stderr. Errors include `error`, `error_type`, `status_code`, and `response` when available.
 
@@ -103,7 +106,7 @@ Sending requires `from`, at least one `to` recipient, `subject`, and at least on
 
 Attachments are read from local files and encoded as Resend-compatible attachment dictionaries with filename, content, and content type. Missing attachment files fail before any network call.
 
-Dry-run mode builds and validates the payload but does not call Resend.
+Dry-run mode builds and validates the payload but does not call Resend. Real sends require `--confirm-send` so an omitted dry-run flag does not silently send email.
 
 ## 6. Receive Design
 

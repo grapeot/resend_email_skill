@@ -33,7 +33,7 @@ Do not commit `.env`, received email data, attachments, raw MIME, local SQLite d
 
 ## Send Email
 
-Always dry-run before a real send unless the user has already given clear send authorization.
+Always dry-run before a real send unless the user has already given clear send authorization. Real sends require `--confirm-send`.
 
 ```bash
 .venv/bin/python -m resend_email_skill.cli send \
@@ -45,7 +45,7 @@ Always dry-run before a real send unless the user has already given clear send a
   --format json
 ```
 
-For a real send, remove `--dry-run`:
+For a real send, remove `--dry-run` and add `--confirm-send`:
 
 ```bash
 .venv/bin/python -m resend_email_skill.cli send \
@@ -53,6 +53,7 @@ For a real send, remove `--dry-run`:
   --subject "Subject" \
   --body-file body.md \
   --body-format markdown \
+  --confirm-send \
   --format json
 ```
 
@@ -85,6 +86,12 @@ Export a received email to Markdown:
 
 ```bash
 .venv/bin/python -m resend_email_skill.cli received export-md <email_id> --output-dir data/received/markdown --format json
+```
+
+Export recent received email to local Markdown files:
+
+```bash
+.venv/bin/python -m resend_email_skill.cli received export-all-md --limit 20 --output-dir data/received/markdown --format json
 ```
 
 ## Attachments
@@ -123,7 +130,7 @@ RESEND_RECEIVING_ADDRESS=anything@example.resend.app \
 
 ## Boundaries
 
-- Do not send real email unless the user clearly asked for a real send.
+- Do not send real email unless the user clearly asked for a real send and the command includes `--confirm-send`.
 - Do not treat Resend receiving as a personal mailbox replacement.
 - Do not commit private email data.
 - Do not add dashboard administration, contact management, bulk marketing, or background sync behavior to this skill.

@@ -57,6 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     send.add_argument("--attach", action="append")
     send.add_argument("--idempotency-key")
     send.add_argument("--dry-run", action="store_true")
+    send.add_argument("--confirm-send", action="store_true", help="Required for real sends. Omit only when using --dry-run.")
 
     received = subparsers.add_parser("received")
     add_format(received)
@@ -75,6 +76,13 @@ def build_parser() -> argparse.ArgumentParser:
     add_format(export)
     export.add_argument("email_id")
     export.add_argument("--output-dir", default="data/received/markdown")
+
+    export_all = received_sub.add_parser("export-all-md")
+    add_format(export_all)
+    export_all.add_argument("--output-dir", default="data/received/markdown")
+    export_all.add_argument("--limit", type=int, default=20)
+    export_all.add_argument("--after")
+    export_all.add_argument("--before")
 
     poll = received_sub.add_parser("poll")
     add_format(poll)
@@ -123,6 +131,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         )
         if args.dry_run:
             return {"status": "dry_run", "sent": False, "payload": summarize_payload(payload)}
+        if not args.confirm_send:
+            raise ResendEmailSkillError("Real sends require --confirm-send. Run with --dry-run first.", error_type="send_not_confirmed")
         response = client.send_email(payload, idempotency_key=args.idempotency_key)
         return {"status": "sent", "sent": True, "response": response}
     if args.command == "received":
@@ -134,6 +144,16 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             email = client.get_received(args.email_id)
             path = export_markdown(email, Path(args.output_dir))
             return {"status": "exported", "path": str(path), "email": normalize_email(email)}
+        if args.received_command == "export-all-md":
+            listed = normalize_list_response(client.list_received(limit=args.limit, after=args.after, before=args.before))
+            paths = []
+            for item in listed["data"]:
+                email_id = item.get("id")
+                if not email_id:
+                    continue
+                email = client.get_received(str(email_id))
+                paths.append(str(export_markdown(email, Path(args.output_dir))))
+            return {"status": "exported", "count": len(paths), "paths": paths, "has_more": listed["has_more"]}
         if args.received_command == "poll":
             email = poll_for_subject(client, args.subject_prefix, args.timeout, interval=args.interval, limit=args.limit)
             return {"status": "found", "email": email}

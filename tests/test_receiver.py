@@ -5,18 +5,19 @@ from typing import Any
 
 import pytest
 
-from resend_email_skill.attachments import normalize_attachment_list, write_attachment
+from resend_email_skill.attachments import normalize_attachment_list, safe_filename, write_attachment
 from resend_email_skill.errors import ValidationError
 from resend_email_skill.markdown import email_to_markdown, export_markdown
 from resend_email_skill.receiver import normalize_email, normalize_list_response, poll_for_subject
 
 
 def test_normalize_list_response_handles_missing_optional_fields() -> None:
-    response: dict[str, Any] = {"object": "list", "has_more": False, "data": [{"id": "e1", "from": "a@example.com", "to": ["b@example.com"]}]}
+    response: dict[str, Any] = {"object": "list", "has_more": False, "data": [{"id": "e1", "from": "a@example.com", "to": ["b@example.com"], "raw": "private mime"}]}
     normalized = normalize_list_response(response)
     data = normalized["data"]
     assert isinstance(data, list)
     assert data[0]["id"] == "e1"
+    assert "raw" not in data[0]
     assert data[0]["attachments"] == []
     assert normalized["has_more"] is False
 
@@ -58,6 +59,11 @@ def test_write_attachment(tmp_path: Path) -> None:
     path = write_attachment(b"abc", tmp_path, "hello world.txt", "att-1")
     assert path.name == "hello-world.txt"
     assert path.read_bytes() == b"abc"
+
+
+def test_safe_filename_rejects_parent_directory_component() -> None:
+    assert safe_filename("..", "att-1.bin") == "att-1.bin"
+    assert safe_filename(".", "att-1.bin") == "att-1.bin"
 
 
 class FakePollClient:
