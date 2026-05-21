@@ -41,9 +41,13 @@ Always dry-run before a real send unless the user has already given clear send a
   --subject "Subject" \
   --body-file body.md \
   --body-format markdown \
+  --header "X-Custom: value" \
+  --header "X-Trace: abc" \
   --dry-run \
   --format json
 ```
+
+`--header` is repeatable. Each value must use `Name: Value` format; both the name and value are trimmed and included in the Resend `headers` payload object.
 
 For a real send, remove `--dry-run` and add `--confirm-send`:
 

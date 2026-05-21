@@ -8,7 +8,7 @@ This repository is self-contained. It is not a vendor-specific packaged skill fo
 
 ## What It Does
 
-- Send email through Resend with dry-run support.
+- Send email through Resend with dry-run and custom header support.
 - List received email through Resend receiving APIs.
 - Retrieve received email HTML/text/headers/attachment metadata.
 - Export received email to Markdown for AI agents.
@@ -53,8 +53,10 @@ The Python package only reads resolved environment variables. It does not call 1
 Dry-run a send:
 
 ```bash
-resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --dry-run --format json
+resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --header "X-Custom: value" --dry-run --format json
 ```
+
+`--header "Name: Value"` can be repeated. Header names and values are trimmed, and the dry-run JSON payload includes the resulting `headers` object for review.
 
 Send for real after review:
 
