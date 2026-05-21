@@ -24,6 +24,22 @@ def split_addresses(values: list[str] | None) -> list[str]:
     return addresses
 
 
+def parse_headers(values: list[str] | None) -> dict[str, str]:
+    headers: dict[str, str] = {}
+    for value in values or []:
+        if ":" not in value:
+            raise ValidationError('Header must use the format "Name: Value".')
+        name, header_value = value.split(":", 1)
+        name = name.strip()
+        header_value = header_value.strip()
+        if not name:
+            raise ValidationError("Header name is required.")
+        if not header_value:
+            raise ValidationError("Header value is required.")
+        headers[name] = header_value
+    return headers
+
+
 def load_body(body_file: str | None, body_format: str | None, html: str | None, text: str | None) -> BodyContent:
     if html and text:
         return BodyContent(html=html, text=text)
@@ -79,6 +95,7 @@ def build_send_payload(
     bcc: list[str] | None = None,
     reply_to: list[str] | None = None,
     attach: list[str] | None = None,
+    headers: list[str] | None = None,
 ) -> dict[str, Any]:
     sender = from_email or settings.from_email
     if not sender:
@@ -100,6 +117,7 @@ def build_send_payload(
     cc_values = split_addresses(cc)
     bcc_values = split_addresses(bcc)
     reply_to_values = split_addresses(reply_to)
+    header_values = parse_headers(headers)
     attachments = build_attachments(attach)
     if cc_values:
         payload["cc"] = cc_values
@@ -107,6 +125,8 @@ def build_send_payload(
         payload["bcc"] = bcc_values
     if reply_to_values:
         payload["reply_to"] = reply_to_values
+    if header_values:
+        payload["headers"] = header_values
     if attachments:
         payload["attachments"] = attachments
     return payload

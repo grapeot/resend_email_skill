@@ -6,7 +6,7 @@
 
 ## 功能
 
-- 通过 Resend 发送邮件，支持 dry-run。
+- 通过 Resend 发送邮件，支持 dry-run 和自定义 header。
 - 通过 Resend receiving API 列出收到的邮件。
 - 读取收到邮件的 HTML、text、headers 和附件 metadata。
 - 把收到的邮件导出成 Markdown，方便 AI agent 阅读。
@@ -51,8 +51,10 @@ Python package 只读取已经解析好的环境变量，不直接调用 1Passwo
 dry-run 发送：
 
 ```bash
-resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --dry-run --format json
+resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --header "X-Custom: value" --dry-run --format json
 ```
+
+`--header "Name: Value"` 可以重复使用。Header name 和 value 会被 trim，dry-run JSON payload 会包含解析后的 `headers` object，便于发送前检查。
 
 确认后真实发送：
 

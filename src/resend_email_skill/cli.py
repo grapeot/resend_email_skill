@@ -55,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     send.add_argument("--body-file")
     send.add_argument("--body-format", choices=["markdown", "md", "html", "text", "txt", "plain"])
     send.add_argument("--attach", action="append")
+    send.add_argument("--header", action="append", help='Repeatable custom header in "Name: Value" format.')
     send.add_argument("--idempotency-key")
     send.add_argument("--dry-run", action="store_true")
     send.add_argument("--confirm-send", action="store_true", help="Required for real sends. Omit only when using --dry-run.")
@@ -128,6 +129,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             bcc=args.bcc,
             reply_to=args.reply_to,
             attach=args.attach,
+            headers=args.header,
         )
         if args.dry_run:
             return {"status": "dry_run", "sent": False, "payload": summarize_payload(payload)}

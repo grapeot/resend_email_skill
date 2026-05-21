@@ -16,6 +16,7 @@
 - Ran Ruff: `All checks passed!`.
 - Ran live received-email list test successfully.
 - Ran live send-to-self e2e successfully using explicit live/send/e2e opt-in flags.
+- Added repeatable `send --header "Name: Value"` support. Headers are parsed locally, validated before network calls, included in dry-run payload summaries, and passed through as Resend `headers` objects only when provided.
 
 ## Lessons Learned
 
@@ -23,4 +24,5 @@
 - Attachment content retrieval is two-step: get attachment metadata from Resend, then download bytes from the signed `download_url`.
 - The CLI should accept `--format` at the end of commands because public examples naturally put output controls last. Argparse needs the flag registered on subcommands to support that shape.
 - Send-to-self e2e tests consume quota for both send and receive, so they need separate opt-in flags beyond the base live test flag.
+- Outgoing custom headers are send-payload metadata, not received-side mutation or MIME editing. Keeping them as repeatable `Name: Value` flags preserves the CLI contract without widening scope into a full MIME editor.
 - Private 1Password references are not API keys, but still reveal vault/item structure; public docs should use placeholder references only.
