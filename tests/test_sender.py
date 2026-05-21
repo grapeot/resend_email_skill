@@ -6,7 +6,7 @@ import pytest
 
 from resend_email_skill.config import Settings
 from resend_email_skill.errors import ValidationError
-from resend_email_skill.sender import build_send_payload, split_addresses
+from resend_email_skill.sender import build_send_payload, parse_headers, split_addresses
 
 
 def settings() -> Settings:
@@ -63,6 +63,59 @@ def test_build_send_payload_encodes_attachments(tmp_path: Path) -> None:
     assert payload["attachments"][0]["filename"] == "hello.txt"
     assert payload["attachments"][0]["content"] == list(b"hi")
     assert payload["attachments"][0]["content_type"] == "text/plain"
+
+
+def test_build_send_payload_includes_single_header() -> None:
+    payload = build_send_payload(
+        settings=settings(),
+        from_email=None,
+        to=["user@example.com"],
+        subject="With header",
+        text="body",
+        headers=["X-Custom: value"],
+    )
+
+    assert payload["headers"] == {"X-Custom": "value"}
+
+
+def test_build_send_payload_includes_multiple_headers() -> None:
+    payload = build_send_payload(
+        settings=settings(),
+        from_email=None,
+        to=["user@example.com"],
+        subject="With headers",
+        text="body",
+        headers=["X-Trace: abc", "X-Empty-Allowed: no"],
+    )
+
+    assert payload["headers"] == {"X-Trace": "abc", "X-Empty-Allowed": "no"}
+
+
+def test_build_send_payload_omits_headers_when_none() -> None:
+    payload = build_send_payload(
+        settings=settings(),
+        from_email=None,
+        to=["user@example.com"],
+        subject="No headers",
+        text="body",
+    )
+
+    assert "headers" not in payload
+
+
+def test_parse_headers_rejects_missing_separator() -> None:
+    with pytest.raises(ValidationError, match="Name: Value"):
+        parse_headers(["X-Custom"])
+
+
+def test_parse_headers_rejects_empty_name() -> None:
+    with pytest.raises(ValidationError, match="Header name is required"):
+        parse_headers([" : value"])
+
+
+def test_parse_headers_rejects_empty_value() -> None:
+    with pytest.raises(ValidationError, match="Header value is required"):
+        parse_headers(["X-Custom: "])
 
 
 def test_build_send_payload_requires_body() -> None:
