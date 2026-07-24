@@ -64,6 +64,12 @@ Send for real after review:
 resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --confirm-send --format json
 ```
 
+For automated workflows, transient retries are opt-in and require a stable idempotency key. `--max-attempts` includes the initial request and accepts 1-5:
+
+```bash
+resend-email send --to user@example.com --subject "Hello" --text "Body" --idempotency-key "workflow:message-123" --max-attempts 3 --confirm-send --format json
+```
+
 List received email:
 
 ```bash

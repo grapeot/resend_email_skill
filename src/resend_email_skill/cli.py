@@ -9,7 +9,7 @@ from typing import Any, Sequence
 from resend_email_skill.attachments import normalize_attachment, normalize_attachment_list, write_attachment
 from resend_email_skill.client import ResendClient
 from resend_email_skill.config import doctor_info, load_settings
-from resend_email_skill.errors import ResendEmailSkillError
+from resend_email_skill.errors import ResendEmailSkillError, ValidationError
 from resend_email_skill.markdown import export_markdown
 from resend_email_skill.receiver import normalize_email, normalize_list_response, poll_for_subject
 from resend_email_skill.sender import build_send_payload, summarize_payload
@@ -57,6 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     send.add_argument("--attach", action="append")
     send.add_argument("--header", action="append", help='Repeatable custom header in "Name: Value" format.')
     send.add_argument("--idempotency-key")
+    send.add_argument("--max-attempts", type=int, choices=range(1, 6), default=1)
     send.add_argument("--dry-run", action="store_true")
     send.add_argument("--confirm-send", action="store_true", help="Required for real sends. Omit only when using --dry-run.")
 
@@ -131,11 +132,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             attach=args.attach,
             headers=args.header,
         )
+        if args.max_attempts > 1 and not args.idempotency_key:
+            raise ValidationError("Retrying a send requires --idempotency-key.")
         if args.dry_run:
-            return {"status": "dry_run", "sent": False, "payload": summarize_payload(payload)}
+            return {"status": "dry_run", "sent": False, "max_attempts": args.max_attempts, "payload": summarize_payload(payload)}
         if not args.confirm_send:
             raise ResendEmailSkillError("Real sends require --confirm-send. Run with --dry-run first.", error_type="send_not_confirmed")
-        response = client.send_email(payload, idempotency_key=args.idempotency_key)
+        response = client.send_email(payload, idempotency_key=args.idempotency_key, max_attempts=args.max_attempts)
         return {"status": "sent", "sent": True, "response": response}
     if args.command == "received":
         if args.received_command == "list":

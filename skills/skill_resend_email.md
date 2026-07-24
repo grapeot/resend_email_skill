@@ -61,6 +61,25 @@ For a real send, remove `--dry-run` and add `--confirm-send`:
   --format json
 ```
 
+### Retry transient send failures safely
+
+Automated sends may retry transient failures, including connection failures, timeouts, HTTP 408, HTTP 429, and selected 5xx responses. Retries are opt-in and require a stable idempotency key:
+
+```bash
+.venv/bin/python -m resend_email_skill.cli send \
+  --to user@example.com \
+  --subject "Subject" \
+  --text "Body" \
+  --idempotency-key "workflow:message-123" \
+  --max-attempts 3 \
+  --confirm-send \
+  --format json
+```
+
+`--max-attempts` sets the total attempt count from 1 to 5 (default 1), counting the initial request. Setting `--max-attempts` above 1 requires `--idempotency-key`, including during dry runs. Reuse the same key only when retrying the same logical email; use a new key whenever the recipient, subject, or body changes.
+
+The retry loop uses bounded exponential backoff and does not retry permanent API errors, such as validation failures. Always keep `--confirm-send` on real sends.
+
 Override the default sender with `--from` when needed:
 
 ```bash
@@ -97,6 +116,31 @@ Export recent received email to local Markdown files:
 ```bash
 .venv/bin/python -m resend_email_skill.cli received export-all-md --limit 20 --output-dir data/received/markdown --format json
 ```
+
+### Recent mailbox triage workflow
+
+When the user asks to sync a recent time window such as "last three days" and analyze representative messages, use this workflow:
+
+1. Run `doctor config` first to verify the API key, receiving address, and data directory:
+
+```bash
+op run --env-file=.env -- .venv/bin/python -m resend_email_skill.cli doctor config --format json
+```
+
+2. Export a sufficiently large recent page to Markdown, then filter locally by the `created_at` frontmatter:
+
+```bash
+op run --env-file=.env -- .venv/bin/python -m resend_email_skill.cli received export-all-md \
+  --limit 100 \
+  --output-dir data/received/markdown \
+  --format json
+```
+
+`received list/export-all-md --after` and `--before` are Resend pagination cursors, not timestamp filters. Do not pass ISO timestamps to them; the API expects UUID cursor values and will return a validation error. For date-window analysis, export recent messages first and filter Markdown files by `created_at` locally.
+
+3. Build the sampling list from metadata before reading bodies. A useful representative sample should cover action-worthy mail, finance/receipts, security codes, service alerts, subscription renewals, community replies, newsletters, local/life logistics, and obvious marketing noise. Do not read only the newest messages; newest-first samples overrepresent repeated notifications and promotions.
+
+4. Treat exported Markdown and attachments as private mailbox data. Do not commit `data/received/`, downloaded attachments, raw MIME, or derived reports that expose personal email content. For brainstorming, quote only the minimum needed facts and prefer category-level summaries over full bodies.
 
 ## Attachments
 

@@ -62,6 +62,12 @@ resend-email send --to user@example.com --subject "Hello" --body-file body.md --
 resend-email send --to user@example.com --subject "Hello" --body-file body.md --body-format markdown --confirm-send --format json
 ```
 
+自动化工作流可显式开启瞬时故障重试。使用 `--max-attempts` 指定总尝试次数（范围 1 到 5，默认值为 1，包含首次请求）。当设置为大于 1 的值时，必须提供 `--idempotency-key`，包括 dry run 校验。重试仅针对连接失败、超时、HTTP 408、HTTP 429 及部分 5xx 响应，并采用有界指数退避策略；验证失败等永久性 API 错误将立即失败。实际发送时请始终保留 `--confirm-send`：
+
+```bash
+resend-email send --to user@example.com --subject "Hello" --text "Body" --idempotency-key "workflow:message-123" --max-attempts 3 --confirm-send --format json
+```
+
 列出收到的邮件：
 
 ```bash

@@ -11,8 +11,14 @@ class FakeClient:
     def __init__(self, settings) -> None:
         self.settings = settings
 
-    def send_email(self, payload, idempotency_key=None):
-        return {"id": "sent-1", "idempotency_key": idempotency_key, "payload_subject": payload["subject"], "payload": payload}
+    def send_email(self, payload, idempotency_key=None, *, max_attempts=1):
+        return {
+            "id": "sent-1",
+            "idempotency_key": idempotency_key,
+            "max_attempts": max_attempts,
+            "payload_subject": payload["subject"],
+            "payload": payload,
+        }
 
     def list_received(self, *, limit=20, after=None, before=None):
         _ = (limit, after, before)
@@ -122,10 +128,37 @@ def test_cli_send_uses_client(monkeypatch, capsys) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
     monkeypatch.setenv("RESEND_FROM_EMAIL", "Example <no-reply@example.com>")
     monkeypatch.setattr(cli, "ResendClient", FakeClient)
-    assert cli.main(["send", "--to", "user@example.com", "--subject", "Hi", "--text", "Body", "--idempotency-key", "idem-1", "--confirm-send"]) == 0
+    assert (
+        cli.main(
+            [
+                "send",
+                "--to",
+                "user@example.com",
+                "--subject",
+                "Hi",
+                "--text",
+                "Body",
+                "--idempotency-key",
+                "idem-1",
+                "--max-attempts",
+                "3",
+                "--confirm-send",
+            ]
+        )
+        == 0
+    )
     payload = parse_stdout(capsys.readouterr().out)
     assert payload["response"]["id"] == "sent-1"
     assert payload["response"]["idempotency_key"] == "idem-1"
+    assert payload["response"]["max_attempts"] == 3
+
+
+def test_cli_retry_requires_idempotency_key_even_for_dry_run(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setenv("RESEND_FROM_EMAIL", "Example <no-reply@example.com>")
+    assert cli.main(["send", "--to", "user@example.com", "--subject", "Hi", "--text", "Body", "--max-attempts", "2", "--dry-run"]) == 1
+    payload = json.loads(capsys.readouterr().err)
+    assert payload["error_type"] == "validation_error"
 
 
 def test_cli_real_send_requires_confirmation(monkeypatch, capsys) -> None:
