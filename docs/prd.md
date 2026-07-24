@@ -20,7 +20,7 @@ The repository is intended to be public. Public docs, examples, fixtures, and `.
 
 Version 1 covers five surfaces.
 
-First, email sending. The CLI supports `RESEND_FROM_EMAIL` as the default sender, `--from` as an override, and recipient/body controls including `--to`, `--cc`, `--bcc`, `--reply-to`, `--subject`, `--html`, `--text`, `--body-file`, `--body-format`, `--attach`, `--header`, `--idempotency-key`, `--dry-run`, and `--confirm-send`. Real sends require `--confirm-send`.
+First, email sending. The CLI supports `RESEND_FROM_EMAIL` as the default sender, `--from` as an override, and recipient/body controls including `--to`, `--cc`, `--bcc`, `--reply-to`, `--subject`, `--html`, `--text`, `--body-file`, `--body-format`, `--attach`, `--header`, `--idempotency-key`, `--max-attempts`, `--dry-run`, and `--confirm-send`. Real sends require `--confirm-send`. Retries are opt-in, bounded, limited to transient failures, and require an idempotency key.
 
 Second, received email listing. The CLI wraps Resend's received email list API with `--limit`, `--after`, `--before`, and JSON output. The normalized result includes message id, sender, recipients, subject, creation time, and attachment metadata.
 

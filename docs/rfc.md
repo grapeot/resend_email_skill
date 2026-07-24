@@ -83,6 +83,8 @@ resend-email send \
   --body-file body.md \
   --body-format markdown \
   --header "X-Custom: value" \
+  --idempotency-key "workflow:message-123" \
+  --max-attempts 3 \
   --dry-run \
   --format json
 
@@ -110,6 +112,8 @@ Attachments are read from local files and encoded as Resend-compatible attachmen
 Custom send headers use repeatable `--header "Name: Value"` flags. The parser splits on the first colon, trims the name and value, rejects missing names or empty values, and includes a Resend-compatible `headers` object only when at least one header is provided.
 
 Dry-run mode builds and validates the payload but does not call Resend. Real sends require `--confirm-send` so an omitted dry-run flag does not silently send email.
+
+Transient send retries are opt-in via `--max-attempts`, which counts the initial request and accepts values from 1 to 5 (default 1). Specifying a value above 1 requires `--idempotency-key` at both CLI and library boundaries. The client retries only connection failures, timeouts, HTTP 408, HTTP 429, and selected 5xx responses using bounded exponential backoff. Permanent API errors fail immediately.
 
 ## 6. Receive Design
 

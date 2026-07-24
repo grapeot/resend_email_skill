@@ -15,6 +15,7 @@ Unit tests cover local logic:
 - Attachment content-type inference and byte encoding.
 - Custom header parsing for single headers, multiple headers, invalid missing-colon input, empty names, and empty values.
 - Resend API error mapping.
+- Retry safety: idempotency-key requirement, 1-5 attempt bound, transient status/connection retries, permanent-error fail-fast behavior, and retry exhaustion.
 - Received email response normalization.
 - Markdown export frontmatter and body-source selection.
 
@@ -26,6 +27,7 @@ Mocked integration tests verify CLI-to-library seams with fake clients:
 - `send --dry-run --format json` builds payloads without network calls.
 - `send --header "X-Custom: value" --dry-run --format json` includes parsed headers in the dry-run payload.
 - `send` with a fake client returns a stable email id JSON object.
+- `send --max-attempts N` passes the bounded attempt count to the client and rejects retries without `--idempotency-key`, including in dry-run mode.
 - `received list` handles empty and populated results.
 - `received get` returns normalized body/header/attachment fields.
 - `received export-md` writes Markdown and returns its path.
