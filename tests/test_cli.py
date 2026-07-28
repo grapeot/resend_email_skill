@@ -39,6 +39,29 @@ class FakeClient:
         _ = url
         return b"hello"
 
+    def list_suppressions(self, *, limit=20, after=None, before=None, origin=None):
+        _ = (limit, before, origin)
+        if after is None:
+            return {
+                "object": "list",
+                "data": [{"id": "sup-1", "email": "first@example.com", "origin": "bounce"}],
+                "has_more": True,
+            }
+        return {
+            "object": "list",
+            "data": [{"id": "sup-2", "email": "second@example.com", "origin": "complaint"}],
+            "has_more": False,
+        }
+
+    def get_suppression(self, value):
+        return {"id": "sup-1", "email": value, "origin": "bounce"}
+
+    def add_suppression(self, email):
+        return {"id": "sup-1", "email": email}
+
+    def remove_suppression(self, value):
+        return {"id": value, "deleted": True}
+
 
 def parse_stdout(stdout: str) -> dict[str, Any]:
     return json.loads(stdout)
@@ -203,3 +226,46 @@ def test_cli_attachment_download(monkeypatch, capsys, tmp_path: Path) -> None:
     assert cli.main(["received", "attachments", "download", "email-1", "att-1", "--output-dir", str(tmp_path)]) == 0
     payload = parse_stdout(capsys.readouterr().out)
     assert Path(payload["path"]).read_bytes() == b"hello"
+
+
+def test_cli_suppressions_list_all(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["suppressions", "list", "--all", "--limit", "1"]) == 0
+    payload = parse_stdout(capsys.readouterr().out)
+    assert payload["count"] == 2
+    assert [item["id"] for item in payload["data"]] == ["sup-1", "sup-2"]
+
+
+def test_cli_suppression_get(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["suppressions", "get", "user@example.com"]) == 0
+    assert parse_stdout(capsys.readouterr().out)["origin"] == "bounce"
+
+
+def test_cli_suppression_changes_require_confirmation(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["suppressions", "add", "user@example.com"]) == 1
+    assert json.loads(capsys.readouterr().err)["error_type"] == "suppression_change_not_confirmed"
+    assert cli.main(["suppressions", "remove", "sup-1"]) == 1
+    assert json.loads(capsys.readouterr().err)["error_type"] == "suppression_change_not_confirmed"
+
+
+def test_cli_suppression_change_dry_runs(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["suppressions", "add", "user@example.com", "--dry-run"]) == 0
+    assert parse_stdout(capsys.readouterr().out)["changed"] is False
+    assert cli.main(["suppressions", "remove", "sup-1", "--dry-run"]) == 0
+    assert parse_stdout(capsys.readouterr().out)["changed"] is False
+
+
+def test_cli_suppression_changes_with_confirmation(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "test-secret-key")
+    monkeypatch.setattr(cli, "ResendClient", FakeClient)
+    assert cli.main(["suppressions", "add", "user@example.com", "--confirm-add"]) == 0
+    assert parse_stdout(capsys.readouterr().out)["status"] == "added"
+    assert cli.main(["suppressions", "remove", "sup-1", "--confirm-remove"]) == 0
+    assert parse_stdout(capsys.readouterr().out)["status"] == "removed"

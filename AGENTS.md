@@ -2,7 +2,7 @@
 
 ## Project role
 
-This repository provides an AI-first Resend email skill: a Python library, CLI, and skill document for sending email, listing received email, retrieving received email bodies, exporting received email to Markdown, and handling attachments.
+This repository provides an AI-first Resend email skill: a Python library, CLI, and skill document for sending email, handling received email and attachments, and safely inspecting or managing team-wide suppressions.
 
 It is not a general email client, a dashboard replacement, or a broad Resend API passthrough. Every command should serve an agent workflow with a stable contract and clear safety boundaries.
 

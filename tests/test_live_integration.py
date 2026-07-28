@@ -39,6 +39,13 @@ def test_live_list_received() -> None:
     assert "data" in response
 
 
+def test_live_list_suppressions() -> None:
+    require_live()
+    client = ResendClient(load_settings())
+    response = client.list_suppressions(limit=1)
+    assert "data" in response
+
+
 def test_live_export_recent_received_to_markdown(tmp_path) -> None:
     require_live()
     client = ResendClient(load_settings())

@@ -1,6 +1,6 @@
 # Resend Email Skill
 
-AI-first Resend email automation: send email, list received email, retrieve received email bodies, export received email to Markdown, and handle attachments from a local CLI.
+AI-first Resend email automation: send and receive email, handle attachments, and safely inspect or manage team-wide suppressions from a local CLI.
 
 This repository is self-contained. It is not a vendor-specific packaged skill format. It provides a plain Markdown skill contract at `skills/skill_resend_email.md` plus a Python package and CLI that agents can call.
 
@@ -13,6 +13,7 @@ This repository is self-contained. It is not a vendor-specific packaged skill fo
 - Retrieve received email HTML/text/headers/attachment metadata.
 - Export received email to Markdown for AI agents.
 - List and download received email attachments.
+- List, retrieve, add, and remove team-wide suppressions with guarded mutations.
 - Run offline tests by default and explicit opt-in live/e2e tests.
 
 ## Install
@@ -91,6 +92,17 @@ resend-email received attachments list <email_id> --format json
 resend-email received attachments download <email_id> <attachment_id> --output-dir data/received/attachments --format json
 ```
 
+Suppressions:
+
+```bash
+resend-email suppressions list --all --limit 100 --format json
+resend-email suppressions get user@example.com --format json
+resend-email suppressions add user@example.com --dry-run --format json
+resend-email suppressions remove user@example.com --dry-run --format json
+```
+
+Replace dry-run with `--confirm-add` or `--confirm-remove` only after review and explicit authorization. Suppressions apply across the entire Resend team.
+
 ## Install the Agent Skill
 
 This project uses a plain Markdown skill contract, not a traditional Codex or Claude Code packaged skill format.
@@ -103,7 +115,7 @@ This project uses a plain Markdown skill contract, not a traditional Codex or Cl
 Example guidance:
 
 ```text
-For Resend email sending, received email retrieval, Markdown export, or attachment handling, read skills/skill_resend_email.md and follow its CLI contract.
+For Resend email sending, received email handling, or suppression management, read skills/skill_resend_email.md and follow its CLI contract.
 ```
 
 ## Test
@@ -124,4 +136,4 @@ Real sends from the CLI require `--confirm-send`. Live tests that send email req
 
 ## Privacy
 
-Do not commit `.env`, API keys, private 1Password paths, received email bodies, raw MIME, attachments, local SQLite databases, or token caches. The repository is designed to be publishable with only fake examples.
+Do not commit `.env`, API keys, private 1Password paths, suppression exports, recipient lists, received email bodies, raw MIME, attachments, local SQLite databases, or token caches. The repository is designed to be publishable with only fake examples.

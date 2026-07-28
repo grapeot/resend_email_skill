@@ -108,6 +108,33 @@ def build_parser() -> argparse.ArgumentParser:
     attachment_download.add_argument("email_id")
     attachment_download.add_argument("attachment_id")
     attachment_download.add_argument("--output-dir", default="data/received/attachments")
+
+    suppressions = subparsers.add_parser("suppressions")
+    add_format(suppressions)
+    suppression_sub = suppressions.add_subparsers(dest="suppression_command", required=True)
+    suppression_list = suppression_sub.add_parser("list")
+    add_format(suppression_list)
+    suppression_list.add_argument("--limit", type=int, choices=range(1, 101), default=20)
+    suppression_list.add_argument("--after")
+    suppression_list.add_argument("--before")
+    suppression_list.add_argument("--origin", choices=["bounce", "complaint", "manual"])
+    suppression_list.add_argument("--all", action="store_true", dest="list_all")
+
+    suppression_get = suppression_sub.add_parser("get")
+    add_format(suppression_get)
+    suppression_get.add_argument("suppression")
+
+    suppression_add = suppression_sub.add_parser("add")
+    add_format(suppression_add)
+    suppression_add.add_argument("email")
+    suppression_add.add_argument("--dry-run", action="store_true")
+    suppression_add.add_argument("--confirm-add", action="store_true")
+
+    suppression_remove = suppression_sub.add_parser("remove")
+    add_format(suppression_remove)
+    suppression_remove.add_argument("suppression")
+    suppression_remove.add_argument("--dry-run", action="store_true")
+    suppression_remove.add_argument("--confirm-remove", action="store_true")
     return parser
 
 
@@ -175,6 +202,49 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 content = client.download_url(str(url))
                 path = write_attachment(content, Path(args.output_dir), attachment.get("filename"), str(args.attachment_id))
                 return {"status": "downloaded", "path": str(path), "attachment": attachment, "size": len(content)}
+    if args.command == "suppressions":
+        if args.suppression_command == "list":
+            if args.list_all and args.before:
+                raise ValidationError("--all cannot be combined with --before; use --after to resume forward pagination.")
+            response = client.list_suppressions(
+                limit=args.limit,
+                after=args.after,
+                before=args.before,
+                origin=args.origin,
+            )
+            if not args.list_all:
+                return response
+            data = list(response.get("data", []))
+            while response.get("has_more"):
+                cursor = data[-1].get("id") if data else None
+                if not cursor:
+                    raise ResendEmailSkillError(
+                        "Suppression pagination response has_more=true but no final id cursor.",
+                        error_type="invalid_api_response",
+                    )
+                response = client.list_suppressions(limit=args.limit, after=str(cursor), origin=args.origin)
+                data.extend(response.get("data", []))
+            return {"object": "list", "has_more": False, "data": data, "count": len(data)}
+        if args.suppression_command == "get":
+            return client.get_suppression(args.suppression)
+        if args.suppression_command == "add":
+            if args.dry_run:
+                return {"status": "dry_run", "changed": False, "action": "add", "email": args.email}
+            if not args.confirm_add:
+                raise ResendEmailSkillError(
+                    "Adding a suppression requires --confirm-add. Run with --dry-run first.",
+                    error_type="suppression_change_not_confirmed",
+                )
+            return {"status": "added", "changed": True, "response": client.add_suppression(args.email)}
+        if args.suppression_command == "remove":
+            if args.dry_run:
+                return {"status": "dry_run", "changed": False, "action": "remove", "suppression": args.suppression}
+            if not args.confirm_remove:
+                raise ResendEmailSkillError(
+                    "Removing a suppression requires --confirm-remove. Run with --dry-run first.",
+                    error_type="suppression_change_not_confirmed",
+                )
+            return {"status": "removed", "changed": True, "response": client.remove_suppression(args.suppression)}
     raise ResendEmailSkillError("Unsupported command", error_type="unsupported_command")
 
 
