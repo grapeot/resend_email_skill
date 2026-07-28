@@ -41,7 +41,7 @@ resend_email_skill/
 
 `config.py` loads `.env` files and environment variables into a small settings object. The supported variables are `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_RECEIVING_ADDRESS`, `RESEND_API_BASE_URL`, and `RESEND_DATA_DIR`.
 
-`client.py` owns HTTP transport and Resend SDK integration. It exposes a narrow interface: send, list received, get received, list attachments, get attachment, and download signed URLs.
+`client.py` owns HTTP transport and Resend SDK integration. It exposes a narrow interface for sending, receiving, attachments, and suppression list operations.
 
 `sender.py` builds send payloads, validates required fields, loads body files, converts Markdown to HTML when requested, encodes attachments, and handles dry-run output.
 
@@ -95,9 +95,16 @@ resend-email received export-all-md --limit 20 --output-dir data/received/markdo
 resend-email received attachments list <email_id> --format json
 resend-email received attachments download <email_id> <attachment_id> --output-dir data/received/attachments --format json
 resend-email received poll --subject-prefix "[resend-e2e]" --timeout 60 --format json
+
+resend-email suppressions list --all --limit 100 --format json
+resend-email suppressions get <suppression_id_or_email> --format json
+resend-email suppressions add user@example.com --dry-run --format json
+resend-email suppressions remove <suppression_id_or_email> --dry-run --format json
 ```
 
 Real sends require replacing `--dry-run` with `--confirm-send`.
+
+Real suppression changes require replacing `--dry-run` with `--confirm-add` or `--confirm-remove`. Read operations need no confirmation. `suppressions list --all` follows forward id cursors and returns a final `count`; `--before` is rejected in this mode because it cannot drive forward pagination.
 
 When `--format json` is set, stdout contains exactly one JSON object. Progress and polling messages go to stderr. Errors include `error`, `error_type`, `status_code`, and `response` when available.
 
@@ -144,7 +151,11 @@ For Codex, Claude Code, OpenCode, or similar agents, installation means:
 
 If the workspace has a skill index or discovery file, add the skill there. If not, add a short note to the root `AGENTS.md`, `CLAUDE.md`, or equivalent file used by that agent.
 
-## 8. Privacy Review
+## 8. Suppression Design
+
+Suppressions contain recipient email addresses and therefore remain private runtime data. List/get return JSON only and do not persist results. Add/remove expose dry-run plans and operation-specific confirmations because suppressions apply across every domain in the authenticated team. The CLI intentionally omits batch mutation support; agents can inspect the affected entry and underlying `source_id` before changing one address.
+
+## 9. Privacy Review
 
 Before publishing or pushing, run a privacy check:
 
@@ -153,8 +164,8 @@ git status --short
 rg -n "re_[A-Za-z0-9]{20,}|op://[^\s]+/[^\s]+/[^\s]+|RESEND_API_KEY=.*re_|BEGIN PRIVATE|@.*resend\.app" .
 ```
 
-Expected examples should use placeholders. Private `.env`, local data, raw MIME, attachments, SQLite databases, and token caches must remain out of git.
+Expected examples should use placeholders. Private `.env`, local data, suppression exports, recipient lists, raw MIME, attachments, SQLite databases, and token caches must remain out of git.
 
-## 9. Deferred
+## 10. Deferred
 
-Deferred features include webhook server support, background sync, multiple named profiles, message delete/archive semantics, full MIME parsing, full-text indexing, and dashboard administration.
+Deferred features include webhook server support, background sync, multiple named profiles, message delete/archive semantics, full MIME parsing, full-text indexing, batch suppression mutation, and unrelated dashboard administration.

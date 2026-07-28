@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use Resend for agent-controlled email sending, received email listing, received email retrieval, Markdown export, and attachment handling. This file is the canonical agent contract for this repository.
+Use Resend for agent-controlled email sending, received email handling, and team-wide suppression inspection and management. This file is the canonical agent contract for this repository.
 
 This is a plain Markdown skill document, not a vendor-specific packaged skill format. Agents should read it when the user asks for Resend email operations.
 
@@ -158,6 +158,33 @@ Download an attachment:
 
 Signed attachment URLs expire. Use them only for immediate downloads.
 
+## Suppressions
+
+Suppressions apply across the entire Resend team, not only one domain. List every suppressed address, including its origin, source email id, and creation time:
+
+```bash
+.venv/bin/python -m resend_email_skill.cli suppressions list --all --limit 100 --format json
+```
+
+Use `--origin bounce|complaint|manual` to filter. Without `--all`, `--limit`, `--after`, and `--before` expose one API page. Retrieve one suppression by id or email:
+
+```bash
+.venv/bin/python -m resend_email_skill.cli suppressions get user@example.com --format json
+```
+
+`origin` is `bounce`, `complaint`, or `manual`. `source_id` identifies the email that caused an automatic suppression and is `null` for manual entries.
+
+Adding or removing an address changes team-wide sending behavior. Dry-run first, investigate the underlying bounce or complaint, and use the operation-specific confirmation only with explicit authorization:
+
+```bash
+.venv/bin/python -m resend_email_skill.cli suppressions add user@example.com --dry-run --format json
+.venv/bin/python -m resend_email_skill.cli suppressions add user@example.com --confirm-add --format json
+.venv/bin/python -m resend_email_skill.cli suppressions remove user@example.com --dry-run --format json
+.venv/bin/python -m resend_email_skill.cli suppressions remove user@example.com --confirm-remove --format json
+```
+
+Removing a suppression does not fix the recipient or guarantee delivery. A repeated hard bounce or complaint suppresses the address again and can harm sender reputation. Treat suppression output as private recipient data: return it only when needed and never commit it or save it in public artifacts.
+
 ## Tests
 
 Default tests are offline:
@@ -181,4 +208,5 @@ RESEND_RECEIVING_ADDRESS=anything@example.resend.app \
 - Do not send real email unless the user clearly asked for a real send and the command includes `--confirm-send`.
 - Do not treat Resend receiving as a personal mailbox replacement.
 - Do not commit private email data.
-- Do not add dashboard administration, contact management, bulk marketing, or background sync behavior to this skill.
+- Do not add or remove suppressions without explicit authorization and the matching confirmation flag.
+- Do not add unrelated dashboard administration, contact management, bulk marketing, or background sync behavior to this skill.

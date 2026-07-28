@@ -108,3 +108,51 @@ def test_send_retries_require_idempotency_key() -> None:
 def test_send_rejects_attempt_count_outside_safety_bound(max_attempts) -> None:
     with pytest.raises(ValidationError, match="between 1 and 5"):
         make_client().send_email({"subject": "Hello"}, idempotency_key="stable-key", max_attempts=max_attempts)
+
+
+def install_fake_suppressions(monkeypatch, *, list_response=None):
+    calls = []
+
+    class Suppressions:
+        @staticmethod
+        def list(params):
+            calls.append(("list", params))
+            return list_response or {"object": "list", "data": [], "has_more": False}
+
+        @staticmethod
+        def get(value):
+            calls.append(("get", value))
+            return {"id": "sup-1", "email": value}
+
+        @staticmethod
+        def add(params):
+            calls.append(("add", params))
+            return {"id": "sup-1"}
+
+        @staticmethod
+        def remove(value):
+            calls.append(("remove", value))
+            return {"id": "sup-1", "deleted": True}
+
+    fake_resend = SimpleNamespace(api_key=None, api_url=None, Suppressions=Suppressions)
+    monkeypatch.setitem(sys.modules, "resend", fake_resend)
+    return calls
+
+
+def test_suppression_client_operations(monkeypatch) -> None:
+    calls = install_fake_suppressions(
+        monkeypatch,
+        list_response={"object": "list", "data": [{"id": "sup-1"}], "has_more": False},
+    )
+    client = make_client()
+
+    assert client.list_suppressions(limit=50, after="sup-0", origin="bounce")["data"] == [{"id": "sup-1"}]
+    assert client.get_suppression("user@example.com")["email"] == "user@example.com"
+    assert client.add_suppression("user@example.com") == {"id": "sup-1"}
+    assert client.remove_suppression("sup-1")["deleted"] is True
+    assert calls == [
+        ("list", {"limit": 50, "after": "sup-0", "origin": "bounce"}),
+        ("get", "user@example.com"),
+        ("add", {"email": "user@example.com"}),
+        ("remove", "sup-1"),
+    ]

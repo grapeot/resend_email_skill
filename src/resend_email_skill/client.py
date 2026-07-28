@@ -124,6 +124,56 @@ class ResendClient:
         except Exception as exc:
             raise ApiError.from_exception(exc) from exc
 
+    def list_suppressions(
+        self,
+        *,
+        limit: int = 20,
+        after: str | None = None,
+        before: str | None = None,
+        origin: str | None = None,
+    ) -> dict[str, Any]:
+        self._configure()
+        import resend
+
+        params: dict[str, Any] = {"limit": limit}
+        if after:
+            params["after"] = after
+        if before:
+            params["before"] = before
+        if origin:
+            params["origin"] = origin
+        try:
+            return dict(resend.Suppressions.list(params))
+        except Exception as exc:
+            raise ApiError.from_exception(exc) from exc
+
+    def get_suppression(self, suppression_id_or_email: str) -> dict[str, Any]:
+        self._configure()
+        import resend
+
+        try:
+            return dict(resend.Suppressions.get(suppression_id_or_email))
+        except Exception as exc:
+            raise ApiError.from_exception(exc) from exc
+
+    def add_suppression(self, email: str) -> dict[str, Any]:
+        self._configure()
+        import resend
+
+        try:
+            return dict(resend.Suppressions.add({"email": email}))
+        except Exception as exc:
+            raise ApiError.from_exception(exc) from exc
+
+    def remove_suppression(self, suppression_id_or_email: str) -> dict[str, Any]:
+        self._configure()
+        import resend
+
+        try:
+            return dict(resend.Suppressions.remove(suppression_id_or_email))
+        except Exception as exc:
+            raise ApiError.from_exception(exc) from exc
+
     def download_url(self, url: str) -> bytes:
         try:
             response = requests.get(url, timeout=60)

@@ -2,7 +2,7 @@
 
 ## 1. Product Definition
 
-Resend Email Skill is a local, AI-first email automation project. It wraps Resend send and receiving APIs behind a stable Python library, CLI, and agent skill document. The core capabilities are sending email, listing received email, retrieving received email content, exporting received email to Markdown, and reading attachment metadata or downloading attachments.
+Resend Email Skill is a local, AI-first email automation project. It wraps Resend send, receiving, and suppression APIs behind a stable Python library, CLI, and agent skill document. The core capabilities are sending email, handling received email and attachments, and safely inspecting or managing team-wide suppressions.
 
 The project is not a general email client. It targets repeatable agent workflows: sending transactional or notification email from a verified sender, using Resend receiving addresses for end-to-end verification, converting received email into Markdown for agent consumption, and proving the send/receive path with explicit opt-in live tests.
 
@@ -18,7 +18,7 @@ The repository is intended to be public. Public docs, examples, fixtures, and `.
 
 ## 3. Version Scope
 
-Version 1 covers five surfaces.
+Version 1 covers six surfaces.
 
 First, email sending. The CLI supports `RESEND_FROM_EMAIL` as the default sender, `--from` as an override, and recipient/body controls including `--to`, `--cc`, `--bcc`, `--reply-to`, `--subject`, `--html`, `--text`, `--body-file`, `--body-format`, `--attach`, `--header`, `--idempotency-key`, `--max-attempts`, `--dry-run`, and `--confirm-send`. Real sends require `--confirm-send`. Retries are opt-in, bounded, limited to transient failures, and require an idempotency key.
 
@@ -30,9 +30,11 @@ Fourth, attachment handling. The CLI lists received email attachments and downlo
 
 Fifth, verification. Offline tests cover payload construction and response normalization. Live tests can send a uniquely identified email to a receiving address, poll the received email API, retrieve the message, and verify subject/body matching. These tests are skipped unless explicitly enabled.
 
+Sixth, suppression management. Read operations can list all pages, filter by origin, and retrieve one suppression by id or email. Add and remove operations support dry-run and require distinct confirmation flags because they change sending behavior across the entire Resend team.
+
 ## 4. Non-Goals
 
-Version 1 does not provide a background sync daemon, web UI, mailbox state management, multi-profile account switching, full MIME parsing, dashboard management, contact management, bulk marketing features, or arbitrary Resend API passthrough.
+Version 1 does not provide a background sync daemon, web UI, mailbox state management, multi-profile account switching, full MIME parsing, unrelated dashboard management, contact management, bulk marketing features, or arbitrary Resend API passthrough.
 
 Version 1 does not treat Resend receiving as a personal mailbox replacement. Receiving support exists for testing, debugging, and agent-readable automation.
 
@@ -42,7 +44,7 @@ Version 1 does not implement a public webhook server. Polling is enough for loca
 
 A successful v1 satisfies these conditions.
 
-First, an agent can read `skills/skill_resend_email.md` and reliably send, dry-run, list received email, retrieve received email, export Markdown, and handle attachments.
+First, an agent can read `skills/skill_resend_email.md` and reliably send, handle received email and attachments, inspect suppressions, and safely dry-run or confirm suppression changes.
 
 Second, CLI stdout is machine-readable JSON. Progress, warnings, and diagnostics go to stderr.
 
@@ -52,7 +54,7 @@ Fourth, live and e2e tests require explicit environment flags, and write operati
 
 Fifth, installation instructions are self-contained and explain how to integrate the skill into an agent workspace that discovers skills from a global skills directory or from agent configuration files.
 
-Sixth, the repository passes a privacy review before publication: no real keys, no real `op://` private paths, no received email payloads, no attachments, no raw MIME, no token cache, and no local data directory in git.
+Sixth, the repository passes a privacy review before publication: no real keys, private references, received email payloads, suppression exports, recipient lists, attachments, raw MIME, token cache, or local data directory in git.
 
 ## 6. Risks
 

@@ -1,6 +1,6 @@
 # Resend Email Skill
 
-这是一个面向 AI agent 的 Resend 邮件自动化项目：发送邮件、列出 received email、读取正文、导出 Markdown、读取和下载附件。
+这是一个面向 AI agent 的 Resend 邮件自动化项目：发送与接收邮件、处理附件，以及安全查看或管理 team-wide suppression。
 
 这个 repo 是 self-contained 的。它不是 Codex 或 Claude Code 的传统打包 skill 格式，而是提供一个普通 Markdown skill contract：`skills/skill_resend_email.md`，再配套 Python package 和 CLI。
 
@@ -11,6 +11,7 @@
 - 读取收到邮件的 HTML、text、headers 和附件 metadata。
 - 把收到的邮件导出成 Markdown，方便 AI agent 阅读。
 - 列出并下载收到邮件的附件。
+- 列出、读取、新增和移除整个 Resend team 的 suppression；写操作有独立安全门。
 - 默认测试不触网，真实 live/e2e 测试必须显式开启。
 
 ## 安装
@@ -89,6 +90,17 @@ resend-email received attachments list <email_id> --format json
 resend-email received attachments download <email_id> <attachment_id> --output-dir data/received/attachments --format json
 ```
 
+Suppression：
+
+```bash
+resend-email suppressions list --all --limit 100 --format json
+resend-email suppressions get user@example.com --format json
+resend-email suppressions add user@example.com --dry-run --format json
+resend-email suppressions remove user@example.com --dry-run --format json
+```
+
+完成 review 且获得明确授权后，才把 dry-run 换成 `--confirm-add` 或 `--confirm-remove`。Suppression 对整个 Resend team 的所有域名生效。
+
 ## 安装给 Agent 使用
 
 这个项目使用普通 Markdown skill contract，不是某个 agent 的传统 packaged skill 格式。
@@ -101,7 +113,7 @@ resend-email received attachments download <email_id> <attachment_id> --output-d
 示例：
 
 ```text
-For Resend email sending, received email retrieval, Markdown export, or attachment handling, read skills/skill_resend_email.md and follow its CLI contract.
+For Resend email sending, received email handling, or suppression management, read skills/skill_resend_email.md and follow its CLI contract.
 ```
 
 ## 测试
@@ -122,4 +134,4 @@ RESEND_ENABLE_LIVE_TESTS=1 .venv/bin/python -m pytest -v -m live_integration
 
 ## 隐私
 
-不要提交 `.env`、API key、私有 1Password path、收到的邮件正文、raw MIME、附件、本地 SQLite 数据库或 token cache。这个 repo 的公开文件只应该包含假例子。
+不要提交 `.env`、API key、私有 1Password path、suppression export、recipient list、收到的邮件正文、raw MIME、附件、本地 SQLite 数据库或 token cache。这个 repo 的公开文件只应该包含假例子。

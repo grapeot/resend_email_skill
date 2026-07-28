@@ -19,6 +19,12 @@
 - Added repeatable `send --header "Name: Value"` support. Headers are parsed locally, validated before network calls, included in dry-run payload summaries, and passed through as Resend `headers` objects only when provided.
 - Added opt-in transient send retries through `--max-attempts`. Retry-enabled sends require a stable idempotency key, stop after at most five total attempts, and fail fast on permanent API errors.
 
+### 2026-07-28
+
+- Added Resend managed suppression support using Python SDK 2.35.0: paginated list/all, origin filtering, single-entry retrieval, and guarded add/remove operations.
+- Kept suppression reads ephemeral. Add/remove require dry-run or operation-specific confirmation because suppressions affect every sending domain in the team.
+- Expanded the privacy gate to prohibit committed suppression exports and recipient lists.
+
 ## Lessons Learned
 
 - Resend receiving is not webhook-only. The Python SDK exposes `Emails.Receiving.list`, `Emails.Receiving.get`, and `Emails.Receiving.Attachments` helpers.
@@ -28,3 +34,4 @@
 - Outgoing custom headers are send-payload metadata, not received-side mutation or MIME editing. Keeping them as repeatable `Name: Value` flags preserves the CLI contract without widening scope into a full MIME editor.
 - Retries and idempotency are one safety feature, not independent options. Retrying without a stable key can duplicate an email after an ambiguous timeout, so both the CLI and library reject that combination before sending.
 - Private 1Password references are not API keys, but still reveal vault/item structure; public docs should use placeholder references only.
+- Suppressions are team-wide recipient controls, so their email addresses are private runtime output and mutation needs a stricter gate than ordinary reads.

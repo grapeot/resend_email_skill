@@ -18,6 +18,7 @@ Unit tests cover local logic:
 - Retry safety: idempotency-key requirement, 1-5 attempt bound, transient status/connection retries, permanent-error fail-fast behavior, and retry exhaustion.
 - Received email response normalization.
 - Markdown export frontmatter and body-source selection.
+- Suppression list/get/add/remove SDK calls and list filter parameters.
 
 ## 3. Mocked Integration Tests
 
@@ -33,6 +34,8 @@ Mocked integration tests verify CLI-to-library seams with fake clients:
 - `received export-md` writes Markdown and returns its path.
 - `received attachments download` writes bytes from a fake signed URL.
 - `received poll` succeeds when a fake list response eventually includes the subject and fails clearly on timeout.
+- `suppressions list --all` follows cursors and reports the complete count.
+- Suppression add/remove dry-runs do not call the API, and real changes fail without their operation-specific confirmation flags.
 
 ## 4. Live Integration Tests
 
@@ -47,6 +50,8 @@ Live tests may get credentials either from a direct private environment variable
 ```bash
 op run --env-file=.env -- .venv/bin/python -m pytest -v -m live_integration
 ```
+
+The base live flag permits read-only received-email and suppression-list checks. It does not authorize suppression mutations.
 
 Real sending requires an additional flag:
 
@@ -99,4 +104,4 @@ git status --short
 rg -n "re_[A-Za-z0-9]{20,}|op://[^\s]+/[^\s]+/[^\s]+|RESEND_API_KEY=.*re_|BEGIN PRIVATE|@.*resend\.app" .
 ```
 
-Clean any real key, real 1Password path, real receiving address, real email body, attachment sample, raw MIME, or private data path before committing.
+Clean any real key, real 1Password path, real receiving address, real suppression entry or recipient list, real email body, attachment sample, raw MIME, or private data path before committing.
