@@ -2,6 +2,12 @@
 
 ## Changelog
 
+### 2026-09-26
+
+- Added `skills/skill_suppression_analysis.md`, a focused companion skill teaching agents how to analyze team-wide suppression lists: funnel overview, bounce-rate denominators from the `/emails` send log (with retention-window caveats), complaint tracing via `source_id`, heuristic bounce classification (typos/malformed, internal, genuine hard bounces), and three fixed conclusion questions.
+- The analysis skill defines a Markdown report contract (`suppression_report_<date>.md`, uncommitted by default) and a guarded reset SOP: backup, batch dry-run, per-address `--confirm-remove` execution, audit file, and complaint re-add verification. Complaints are never reset candidates.
+- Registered the new skill in `docs/prd.md` and the `docs/rfc.md` repo structure.
+
 ### 2026-05-20
 
 - Created the self-contained Resend Email Skill repository scaffold.

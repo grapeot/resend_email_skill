@@ -22,7 +22,8 @@ resend_email_skill/
 │   ├── test.md
 │   └── working.md
 ├── skills/
-│   └── skill_resend_email.md
+│   ├── skill_resend_email.md
+│   └── skill_suppression_analysis.md
 ├── src/
 │   └── resend_email_skill/
 │       ├── __init__.py

@@ -2,7 +2,7 @@
 
 AI-first Resend email automation: send and receive email, handle attachments, and safely inspect or manage team-wide suppressions from a local CLI.
 
-This repository is self-contained. It is not a vendor-specific packaged skill format. It provides a plain Markdown skill contract at `skills/skill_resend_email.md` plus a Python package and CLI that agents can call.
+This repository is self-contained. It is not a vendor-specific packaged skill format. It provides a plain Markdown skill contract at `skills/skill_resend_email.md` plus a Python package and CLI that agents can call. A focused companion skill at `skills/skill_suppression_analysis.md` covers suppression-list analysis and reporting.
 
 [中文说明](README.zh.md)
 

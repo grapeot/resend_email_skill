@@ -44,7 +44,7 @@ Version 1 does not implement a public webhook server. Polling is enough for loca
 
 A successful v1 satisfies these conditions.
 
-First, an agent can read `skills/skill_resend_email.md` and reliably send, handle received email and attachments, inspect suppressions, and safely dry-run or confirm suppression changes.
+First, an agent can read `skills/skill_resend_email.md` and reliably send, handle received email and attachments, inspect suppressions, and safely dry-run or confirm suppression changes. A focused companion skill, `skills/skill_suppression_analysis.md`, teaches agents how to analyze suppression lists (funnel, bounce-rate denominators, complaint tracing, bounce classification, reset-candidate review) and produce a Markdown report.
 
 Second, CLI stdout is machine-readable JSON. Progress, warnings, and diagnostics go to stderr.
 
