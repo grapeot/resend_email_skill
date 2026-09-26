@@ -12,3 +12,10 @@ dist/
 build/
 *.egg-info/
 secrets/
+
+# Suppression analysis artifacts (private data, never commit)
+suppressions_snapshot.json
+suppressions_backup_*.json
+suppression_report_*.md
+suppression_removal_audit_*.json
+reset_candidates_*.json
