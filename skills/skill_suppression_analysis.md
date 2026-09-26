@@ -1,6 +1,6 @@
 ---
 name: suppression-analysis
-description: Analyze Resend suppression lists, calculate deliverability metrics and bounce rates, classify bounces and spam complaints, trace originating emails via source IDs, and generate actionable operator reports. Load when the user asks for suppression, bounce, complaint, or deliverability analysis.
+description: Analyze Resend suppression lists, calculate deliverability metrics and bounce rates, classify bounces and spam complaints, trace originating emails via source IDs, mine post-suppression attempts, discover typo-rescue pairs, and generate actionable operator reports. Load when the user asks for suppression, bounce, complaint, or deliverability analysis.
 ---
 
 # Suppression List Analysis Skill
@@ -30,7 +30,7 @@ Collect the full suppression inventory and recent sent email records:
 
 Each suppression record contains `email`, `origin` (`bounce`, `complaint`, or `manual`), `created_at`, and `source_id`.
 
-## Five Analysis Dimensions
+## Seven Analysis Dimensions
 
 ### 1. Funnel Overview
 Quantify the total suppression count, monthly distribution, and breakdown across origins (`bounce`, `complaint`, and `manual`).
@@ -61,13 +61,26 @@ For each bucket, report the total count and 3–5 representative example address
 Every report must conclude by answering three mandatory questions:
 1. **Is there a systemic delivery problem?** (e.g., domain-wide blocks, authentication failures, broken DNS records).
 2. **Is anything urgent?** (e.g., new spam complaints, sudden volume surges, bounce rates exceeding thresholds).
-3. **Are there reset candidates?** Identify eligible genuine bounces for potential unsuppression. Spam complaints are **never** reset candidates.
+3. **Are there reset candidates?** Identify eligible genuine bounces for potential unsuppression. Prefer addresses with evidence of life (post-suppression attempts, typo-rescue pairs) over blind resets; users often return on their own without dedicated re-send campaigns. Spam complaints are **never** reset candidates.
+
+### 6. Post-Suppression Attempts
+Mine the send log for addresses blocked at send time after listing (`last_event == "suppressed"`):
+- **Detection & Cross-reference**: Collect sends with `last_event == "suppressed"` from `GET /emails` and compare timestamps against suppression snapshot `created_at`. Identify sends blocked because the address was already suppressed.
+- **Still-Knocking Pattern**: A user who bounces once on a typo and retries within minutes from a signup form gets silently blocked. Rapid retries signal locked-out legitimate users rather than dead addresses.
+- **Reporting & Reset Priority**: Report blocked attempt counts, unique addresses, and per-address retry timelines. These represent high-priority reset candidates; because users return spontaneously, recovery requires no outbound test campaign.
+
+### 7. Typo-Rescue Pairs
+Match genuine hard bounces against delivered send-log recipients using edit distance:
+- **Pair Discovery**: Compare bounce addresses against all send-log recipients using `difflib.SequenceMatcher` (same domain with local ratio > 0.8; or similar domain ratio > 0.92 with matched local). Confirm the close-spelling address has `last_event == "delivered"`. If both bounced, exclude both.
+- **Pattern Classification**: Report `bounce_address ↔ rescued_address`, similarity scores, and error patterns (omitted letters, transpositions, domain typos like `mail.com` -> `gmail.com`, pasted phone numbers).
+- **Tombstone Semantics**: Rescued entries are harmless tombstones (~20% of genuine bounces in real data) where users self-recovered. They are safe to reset, and their frequency motivates upstream signup-form validation ("did you mean gmail.com?").
 
 ## Source-ID Tracing
 
 Use `source_id` to retrieve originating email payloads via `GET https://api.resend.com/emails/:id`:
 - **Complaints**: Trace every complaint (up to 5 if many) to determine the exact message that provoked the spam report. Note that when a user accidentally mistypes an email address during registration, the unintended legitimate mailbox owner receives the message and may report it as spam.
 - **Bounces**: Sample up to 5 bounce entries across categories to identify which application flows triggered the rejection (e.g., auth codes vs. system alerts).
+- **Suppressed Attempts**: Scan the send log for `last_event == "suppressed"` entries and cross-reference suppression entry dates to reveal legitimate users locked out after an initial typo.
 
 ## Deliverable Report Skeleton
 
@@ -97,10 +110,16 @@ The deliverable `suppression_report_<YYYY-MM-DD>.md` must follow this exact stru
 - Net new suppressions in window: [Count]
 - Calculated bounce rate: [X.XX%] (or "Denominator unavailable; reporting absolute counts only")
 
+## Post-Suppression Attempts
+- Blocked attempts (`last_event == "suppressed"`): [Count] across [N] unique addresses
+- Still-knocking candidates (real users locked out by post-listing retries):
+  - `us***@example.com`: suppressed at [Timestamp] -> [N] blocked retries within [Window] (e.g., signup flow)
+
 ## Classification Detail
 - **Apparent Typos** (Count: N): `ex***@gamil.com`, ...
 - **Internal / Own-Domain** (Count: N): `test***@example.com`, ...
 - **Genuine Hard Bounces** (Count: N): `user***@example.com`, ...
+- **Typo-Rescued** (Count: N): `bounc***@example.com` ↔ `rescu***@example.com` pairs with delivered confirmation.
 
 ## Deep Dives (Max 5)
 1. **Recipient**: `us***@example.com` (Origin: complaint, Source ID: `<uuid>`)
@@ -110,7 +129,7 @@ The deliverable `suppression_report_<YYYY-MM-DD>.md` must follow this exact stru
 ## Conclusions
 1. Systemic delivery problem: [Yes/No + rationale]
 2. Urgent issues: [Yes/No + details]
-3. Reset candidates: [List candidate genuine hard bounces; 0 complaints]
+3. Reset candidates: [Prioritize entries with evidence of life (post-suppression attempts, typo-rescues) over blind resets; no campaign needed as users return organically; 0 complaints]
 
 ## Data Snapshot & Audit
 - Snapshot timestamp: <ISO-8601>
@@ -153,6 +172,8 @@ If the operator grants explicit authorization, follow this Standard Operating Pr
 - **Send-Log Retention Limits**: The `/emails` endpoint retains logs for roughly 30 days. Historical bounce rates beyond this window cannot be computed; report absolute counts instead.
 - **No Signal Without Subsequent Sends**: Removing an address produces zero delivery signal on its own. Evaluating recovery requires a deliberate re-send followed by approximately one week of observation. Permanent typos will bounce immediately, whereas recovered mailboxes will succeed.
 - **Verification Code Contexts**: In verification code flows, bounces typically represent honest user mistakes (typos, abandoned accounts, full mailboxes) rather than intentional user rejections.
+- **Suppressed Attempt Telemetry**: Suppressed attempts are recorded in the send log with `last_event: "suppressed"`; cross-referencing them with suppression entry dates distinguishes real users still trying (retry shortly after listing) from dead addresses with no further attempts.
+- **Typo-Rescue Quantification**: Edit-distance matching of bounce addresses against the delivered send log quantifies typo-rescues (users who mistyped, self-corrected, and eventually received mail); a meaningful share (~20% in real data) of genuine hard bounces can be typo tombstones. The actionable fix is upstream: add email-spelling confirmation to the signup form.
 
 ## Privacy Boundaries
 
